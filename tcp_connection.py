@@ -55,6 +55,7 @@ class CommandStream(TCPStream):
                     print('Video Stream Open')
                 elif data =='<VIDEOKILL>':
                     self.video.stop_video()
+                    self.client.send('...')
                 else:
                     self.client.send('...')
 
