@@ -1,7 +1,6 @@
 import threading
 import socket
 import os
-import psutil
 
 
 
@@ -73,10 +72,7 @@ class VideoStream(TCPStream):
 
     def stop_video(self):
         print 'Attempting to Kill Video Stream'
-        for proc in psutil.process_iter():
-            if proc.name() == 'raspivid' or proc.name() == 'gst-launch-1.0':
-                print 'Killed Process'
-                proc.kill()
+        os.system('pkill raspivid')
         print 'Video Stream Killed'
 
 
