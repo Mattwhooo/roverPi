@@ -43,10 +43,13 @@ class CommandStream(TCPStream):
                     self.client.send('...')
 
 class ControlStream(TCPStream):
+    def __init__(self, host, port, size=1024, backlog=5):
+        super(ControlStream, self).__init__(host, port, size, backlog)
+        self.server = self.server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     def open(self):
         print ('Opening Control Stream...')
-        super(ControlStream, self).open()
+        #super(ControlStream, self).open()
         thread = threading.Thread(target=self.run, args=())
         thread.daemon = True
         thread.start()
@@ -54,13 +57,12 @@ class ControlStream(TCPStream):
     def run(self):
 
         while True:
-            data = self.client.recv(1024)
+            data = self.server.recvfrom(1024)
             if data:
                 print 'Control-Stream: ' + data
-                self.client.send('...')
 
 if __name__ =='__main__':
-    CS = CommandStream('10.238.242.85', 5000, 1024, 5)
+    CS = CommandStream('192.168.1.144', 5000, 1024, 5)
     while True:
         CS.open()
         cont = CS.run()
