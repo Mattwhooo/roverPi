@@ -62,7 +62,7 @@ class ControlStream(TCPStream):
                 print 'Control-Stream: ' + data
 
 if __name__ =='__main__':
-    CS = CommandStream('192.168.1.144', 5000, 1024, 5)
+    CS = CommandStream('10.238.242.102', 5000, 1024, 5)
     while True:
         CS.open()
         cont = CS.run()
