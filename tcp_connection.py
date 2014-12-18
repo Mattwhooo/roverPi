@@ -80,11 +80,13 @@ class ControlStream(TCPStream):
         print 'Exit GamePad Thread'
 
 if __name__ =='__main__':
+
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect(("gmail.com",80))
     ip = s.getsockname()[0]
     s.close()
     CS = CommandStream(ip, 5002)
+
     while True:
         CS.open()
         cont = CS.run()
