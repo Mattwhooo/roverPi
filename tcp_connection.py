@@ -1,6 +1,8 @@
 import threading
 import socket
 import os
+import psutil
+
 
 
 class TCPStream(object):
@@ -47,9 +49,36 @@ class CommandStream(TCPStream):
                 elif data == '<GAMEPADKILL>':
                     self.control.stop_thread()
                 elif data == '<VIDEOINFO>':
-                    os.system('raspivid -t 0 -h 720 -w 1080 -fps 25 -hf -b 2000000 -o - | gst-launch-1.0 -v fdsrc ! h264parse !  rtph264pay config-interval=1 pt=96 ! gdppay ! tcpserversink host=' + self.host + ' port=' + str(self.port + 2))
+                    print('Attempting to Open Video Stream')
+                    self.client.send(str(self.host) + ':' + str(self.port + 2))
+                    self.video = VideoStream(self.host, self.port + 2)
+                    self.video.run()
+                    print('Video Stream Open')
+                elif data =='<VIDEOKILL>':
+                    self.video.stop_video()
                 else:
                     self.client.send('...')
+
+
+class VideoStream(TCPStream):
+    type = 'video'
+    def run(self):
+        thread = threading.Thread(target=self.start_video, args=())
+        thread.daemon = True
+        thread.start()
+        self.thread = thread
+
+    def start_video(self):
+        os.system('raspivid -t 0 -h 180 -w 270 -fps 25 -hf -b 2000000 -o - | gst-launch-1.0 -v fdsrc ! h264parse !  rtph264pay config-interval=1 pt=96 ! gdppay ! tcpserversink host=' + self.host + ' port=' + str(self.port))
+
+    def stop_video(self):
+        print 'Attempting to Kill Video Stream'
+        for proc in psutil.process_iter():
+            if proc.name() == 'raspivid' or proc.name() == 'gst-launch-1.0':
+                print 'Killed Process'
+                proc.kill()
+        print 'Video Stream Killed'
+
 
 class ControlStream(TCPStream):
     type = 'udp'
