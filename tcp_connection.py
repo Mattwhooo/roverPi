@@ -69,7 +69,7 @@ class VideoStream(TCPStream):
         self.thread = thread
 
     def start_video(self):
-        os.system('raspivid -t 0 -h 180 -w 270 -fps 25 -hf -b 2000000 -o - | gst-launch-1.0 -v fdsrc ! h264parse !  rtph264pay config-interval=1 pt=96 ! gdppay ! tcpserversink host=' + self.host + ' port=' + str(self.port))
+        os.system('raspivid -t 0 -h 360 -w 648 -fps 40 -hf -b 2000000 -o - | gst-launch-1.0 -v fdsrc ! h264parse !  rtph264pay config-interval=1 pt=96 ! gdppay ! tcpserversink host=' + self.host + ' port=' + str(self.port))
 
     def stop_video(self):
         print 'Attempting to Kill Video Stream'
@@ -111,7 +111,7 @@ if __name__ =='__main__':
     s.connect(("gmail.com",80))
     ip = s.getsockname()[0]
     s.close()
-    CS = CommandStream(ip, 5002)
+    CS = CommandStream(ip, 5000)
 
     while True:
         CS.open()
