@@ -1,7 +1,8 @@
 import threading
 import socket
 import os
-
+import RPi.GPIO as io
+from time import sleep
 
 
 class TCPStream(object):
@@ -80,6 +81,35 @@ class VideoStream(TCPStream):
 
 class ControlStream(TCPStream):
     type = 'udp'
+    left_label = 'Y'
+    right_label = 'Z'
+
+    def __init__(self, host, port, size=1024, backlog=5):
+        super(ControlStream, self).__init__(host, port, size, backlog)
+        GPIO.setmode(GPIO.BCM)
+
+        Motor1A = 4
+        Motor1B = 17
+        Motor1E = 22
+
+        Motor2A = 18
+        Motor2B = 23
+        Motor2E = 25
+
+        io.setup(Motor1A, io.OUT)
+        io.setup(Motor1B, io.OUT)
+        io.setup(Motor1E, io.OUT)
+        io.setup(Motor2A, io.OUT)
+        io.setup(Motor2B, io.OUT)
+        io.setup(Motor2E, io.OUT)
+        io.output(Motor1E, io.HIGH)
+        io.output(Motor2E, io.HIGH)
+
+        self.pw_left = io.PWM(Motor1E, 0)
+        self.pw_right = io.PWM(Motor2E, 0)
+        self.pw_left.start(0)
+        self.pw_right.start(0)
+
 
     def open(self):
         print ('Opening Control Stream...')
@@ -90,15 +120,61 @@ class ControlStream(TCPStream):
         thread.start()
 
     def stop_thread(self):
+        self.pw_left.stop()
+        self.pw_right.stop()
+        io.cleanup()
         self.stop = True
         self.server.close()
+
+    def forward(self, side):
+        if side == 'left':
+            io.output(Motor2A, io.HIGH)
+            io.output(Motor2B, io.LOW)
+        else:
+            io.output(Motor1A, io.HIGH)
+            io.output(Motor1B, io.LOW)
+
+    def reverse(self, side):
+        if side == 'left':
+            io.output(Motor2A, io.LOW)
+            io.output(Motor2B, io.HIGH)
+        else:
+            io.output(Motor1A, io.LOW)
+            io.output(Motor1B, io.HIGH)
+
+    def parse_input(self, data):
+        left = data.find(self.left_label)
+        right = data.find(self.right_label)
+        if left != -1:
+            left_value = int(data[data.find(':', left)+1:data.find('~', left)]) - 90
+            if left_value > 5:
+                self.forward('left')
+                self.pw_left.ChangeDutyCycle(left_value)
+            elif left_value < -5:
+                self.reverse('left')
+                self.pw_left.ChangeDutyCycle(left_value)
+            else:
+                self.pw_left.ChangeDutyCycle(0)
+        if right != -1:
+            right_value = int(data[data.find(':', right)+1:data.find('~', right)]) - 90
+            if left_value > 5:
+                self.forward('right')
+                self.pw_left.ChangeDutyCycle(right_value)
+            elif left_value < -5:
+                self.reverse('right')
+                self.pw_left.ChangeDutyCycle(right_value)
+            else:
+                self.pw_left.ChangeDutyCycle(0)
+
 
     def run(self):
         self.server.settimeout(1)
         while True:
             try:
                 data, addr = self.server.recvfrom(1024)
-                print 'Control-Stream: ',  data
+                if data:
+                    self.parse_input(data)
+
             except:
                 pass
 
