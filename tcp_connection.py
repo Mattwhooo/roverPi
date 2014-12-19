@@ -47,7 +47,7 @@ class CommandStream(TCPStream):
                     print('Control Stream Loaded!')
                 elif data == '<GAMEPADKILL>':
                     self.control.stop_thread()
-                    self.client.send('<GAMEPADKILL-OK')
+                    self.client.send('<GAMEPADKILL-OK>')
                 elif data == '<VIDEOINFO>':
                     print('Attempting to Open Video Stream')
                     self.client.send(str(self.host) + ':' + str(self.port + 2))
@@ -56,7 +56,7 @@ class CommandStream(TCPStream):
                     print('Video Stream Open')
                 elif data =='<VIDEOKILL>':
                     self.video.stop_video()
-                    self.client.send('<VIDEOKILL-OK')
+                    self.client.send('<VIDEOKILL-OK>')
                 else:
                     self.client.send('...')
 
