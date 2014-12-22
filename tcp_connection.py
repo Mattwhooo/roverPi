@@ -81,34 +81,29 @@ class VideoStream(TCPStream):
 
 class ControlStream(TCPStream):
     type = 'udp'
-    left_label = 'Y'
-    right_label = 'Z'
+    left_label = 'RotationZ'
+    right_label = 'Y'
 
     def __init__(self, host, port, size=1024, backlog=5):
         super(ControlStream, self).__init__(host, port, size, backlog)
-        GPIO.setmode(GPIO.BCM)
+        io.setmode(io.BCM)
 
-        Motor1A = 4
-        Motor1B = 17
-        Motor1E = 22
+        self.Motor1A = 4
+        self.Motor1B = 17
+        self.Motor1E = 22
 
-        Motor2A = 18
-        Motor2B = 23
-        Motor2E = 25
+        self.Motor2A = 18
+        self.Motor2B = 23
+        self.Motor2E = 25
 
-        io.setup(Motor1A, io.OUT)
-        io.setup(Motor1B, io.OUT)
-        io.setup(Motor1E, io.OUT)
-        io.setup(Motor2A, io.OUT)
-        io.setup(Motor2B, io.OUT)
-        io.setup(Motor2E, io.OUT)
-        io.output(Motor1E, io.HIGH)
-        io.output(Motor2E, io.HIGH)
-
-        self.pw_left = io.PWM(Motor1E, 0)
-        self.pw_right = io.PWM(Motor2E, 0)
-        self.pw_left.start(0)
-        self.pw_right.start(0)
+        io.setup(self.Motor1A, io.OUT)
+        io.setup(self.Motor1B, io.OUT)
+        io.setup(self.Motor1E, io.OUT)
+        io.setup(self.Motor2A, io.OUT)
+        io.setup(self.Motor2B, io.OUT)
+        io.setup(self.Motor2E, io.OUT)
+        io.output(self.Motor1E, io.HIGH)
+        io.output(self.Motor2E, io.HIGH)
 
 
     def open(self):
@@ -126,48 +121,60 @@ class ControlStream(TCPStream):
         self.stop = True
         self.server.close()
 
-    def forward(self, side):
-        if side == 'left':
-            io.output(Motor2A, io.HIGH)
-            io.output(Motor2B, io.LOW)
-        else:
-            io.output(Motor1A, io.HIGH)
-            io.output(Motor1B, io.LOW)
-
     def reverse(self, side):
-        if side == 'left':
-            io.output(Motor2A, io.LOW)
-            io.output(Motor2B, io.HIGH)
+        if side == 'right':
+            io.output(self.Motor2A, True)
+            io.output(self.Motor2B, False)
         else:
-            io.output(Motor1A, io.LOW)
-            io.output(Motor1B, io.HIGH)
+            io.output(self.Motor1A, True)
+            io.output(self.Motor1B, False)
+
+    def forward(self, side):
+        if side == 'right':
+            io.output(self.Motor2A, False)
+            io.output(self.Motor2B, True)
+        else:
+            io.output(self.Motor1A, False)
+            io.output(self.Motor1B, True)
 
     def parse_input(self, data):
         left = data.find(self.left_label)
         right = data.find(self.right_label)
         if left != -1:
-            left_value = int(data[data.find(':', left)+1:data.find('~', left)]) - 90
+            left_value = int(data[data.find(':', left)+1 :data.find('~', left)])-90
             if left_value > 5:
                 self.forward('left')
-                self.pw_left.ChangeDutyCycle(left_value)
+                self.pw_left.ChangeDutyCycle(abs(left_value))
+                print('Left Duty Cycle: ' + str(abs(left_value)))
             elif left_value < -5:
                 self.reverse('left')
-                self.pw_left.ChangeDutyCycle(left_value)
+                self.pw_left.ChangeDutyCycle(abs(left_value))
+                print('Left Duty Cycle: ' + str(abs(left_value)))
             else:
                 self.pw_left.ChangeDutyCycle(0)
+                print('Left Duty Cycle: 0')
         if right != -1:
-            right_value = int(data[data.find(':', right)+1:data.find('~', right)]) - 90
-            if left_value > 5:
+            right_value = int(data[data.find(':', right)+1:data.find('~',right)]) - 90
+            print str(right_value)
+            if right_value > 5:
                 self.forward('right')
-                self.pw_left.ChangeDutyCycle(right_value)
-            elif left_value < -5:
+                self.pw_right.ChangeDutyCycle(abs(right_value))
+                print('Right Duty Cycle: ' + str(abs(right_value)))
+            elif right_value < -5:
                 self.reverse('right')
-                self.pw_left.ChangeDutyCycle(right_value)
+                self.pw_right.ChangeDutyCycle(abs(right_value))
+                print('Right Duty Cycle: ' + str(abs(right_value)))
             else:
-                self.pw_left.ChangeDutyCycle(0)
+                self.pw_right.ChangeDutyCycle(0)
+                print('Right Duty Cycle: 0')
 
 
     def run(self):
+        self.pw_left = io.PWM(self.Motor1E, 500)
+        self.pw_right = io.PWM(self.Motor2E, 500)
+        self.pw_left.start(0)
+        self.pw_right.start(0)
+
         self.server.settimeout(1)
         while True:
             try:
@@ -176,8 +183,7 @@ class ControlStream(TCPStream):
                     self.parse_input(data)
 
             except:
-                pass
-
+		pass
             if self.stop:
                 break
         print 'Exit GamePad Thread'
@@ -188,7 +194,7 @@ if __name__ =='__main__':
     s.connect(("gmail.com",80))
     ip = s.getsockname()[0]
     s.close()
-    CS = CommandStream(ip, 5000)
+    CS = CommandStream(ip, 5020)
 
     while True:
         CS.open()
